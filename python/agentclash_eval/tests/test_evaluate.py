@@ -11,6 +11,14 @@ from agentclash_eval.metrics import Contains, OutputSchema
 from agentclash_eval.report import to_report_dict
 
 
+def _repo_schema_path() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / "schemas" / "evaltest" / "eval-report.schema.json"
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError("schemas/evaltest/eval-report.schema.json not found from test path")
+
+
 def test_assert_agent_passes_with_contains():
     report = assert_agent("hello world", metrics=[Contains("world")])
     assert report.exit_code == 0
@@ -54,13 +62,7 @@ def test_report_matches_schema_when_jsonschema_installed(jsonschema_available):
         pytest.skip("jsonschema not installed")
     report = evaluate("hello world", metrics=[Contains("world")])
     payload = to_report_dict(report)
-    schema_path = (
-        Path(__file__).resolve().parents[4]
-        / "schemas"
-        / "evaltest"
-        / "eval-report.schema.json"
-    )
-    schema = json.loads(schema_path.read_text())
+    schema = json.loads(_repo_schema_path().read_text())
     import jsonschema
 
     jsonschema.validate(payload, schema)
